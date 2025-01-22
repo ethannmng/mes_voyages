@@ -3,12 +3,19 @@
 namespace App\Entity;
 
 use App\Repository\VisiteRepository;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[ORM\Entity(repositoryClass: VisiteRepository::class)]
+#[Vich\Uploadable]
 class Visite
 {
     #[ORM\Id]
@@ -23,7 +30,7 @@ class Visite
     private ?string $pays = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $datecreation = null;
+    private ?DateTimeInterface $datecreation = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $note = null;
@@ -36,6 +43,18 @@ class Visite
 
     #[ORM\Column(nullable: true)]
     private ?int $tempmax = null;
+    
+    #[Vich\UploadableField(mapping: 'visites', fileNameProperty: 'imageName', size: 'imageSize')]
+    private ?File $imageFile = null;
+    
+    #[ORM\Column(nullable: true)]
+    private ?string $imageName = null;
+    
+    #[ORM\Column(nullable: true)]
+    private ?int $imageSize = null;
+    
+    #[ORM\Column(nullable: true)]
+    private ?DateTimeImmutable $updateAt = null;
 
     /**
      * @var Collection<int, Environnement>
@@ -77,7 +96,7 @@ class Visite
         return $this;
     }
 
-    public function getDatecreation(): ?\DateTimeInterface
+    public function getDatecreation(): ?DateTimeInterface
     {
         return $this->datecreation;
     }
@@ -91,7 +110,7 @@ class Visite
         }
     }
 
-    public function setDatecreation(?\DateTimeInterface $datecreation): static
+    public function setDatecreation(?DateTimeInterface $datecreation): static
     {
         $this->datecreation = $datecreation;
 
@@ -169,4 +188,53 @@ class Visite
 
         return $this;
     }
+    
+    public function getImageFile(): ?File {
+        return $this->imageFile;
+    }
+
+    public function getImageName(): ?string {
+        return $this->imageName;
+    }
+
+    public function getImageSize(): ?int {
+        return $this->imageSize;
+    }
+
+    public function setImageFile(?File $imageFile): void {
+        $this->imageFile = $imageFile;
+        
+        if (null !== $imageFile) {
+            $this->updateAt = new DateTimeImmutable();
+        }
+    }
+
+    public function setImageName(?string $imageName): void {
+        $this->imageName = $imageName;
+    }
+
+    public function setImageSize(?int $imageSize): void {
+        $this->imageSize = $imageSize;
+    }
+
+    #[Assert\Callback]
+    public function validate(ExecutionContextInterface $context) {
+        $file = $this->getImageFile();
+        if ($file != null && $file != "") {
+            $poids = @filesize($file);
+            if ($poids != false && $poids > 512000) {
+                $context->buildViolation("Cette image est trop lourde (500Ko max)")
+                        ->atPath('imageFile')
+                        ->addViolation();
+            }
+            
+            $infosImage = @getimagesize($file);
+            if ($infosImage == false) {
+                $context->buildViolation("Ce fichier n'est pas une image")
+                        ->atPath('imageFile')
+                        ->addViolation();
+            }
+        }
+    }
+
 }
