@@ -13,6 +13,11 @@
     </head>
     <body>
         <!-- EN-TÊTE -->
+        <div class="container text-end">
+            {% if app.user %}
+                <a href="{{ path('logout') }}">Se déconnecter</a>
+            {% endif %}
+        </div>
         {% block top %} {% endblock %}
         
         <!-- CORPS -->

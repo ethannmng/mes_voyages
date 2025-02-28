@@ -43,12 +43,22 @@ class VisiteRepository extends ServiceEntityRepository
                     ->getQuery()
                     ->getResult();
         } else {
-            return $this->createQueryBuilder('v')
-                    ->where('v.'.$champ.'=:valeur')
+            if ($champ == "environnements") {
+                return $this->createQueryBuilder('v')
+                    ->join('v.environnements', 'e')
+                    ->where('e.nom = :valeur')
                     ->setParameter('valeur', $valeur)
                     ->orderBy('v.datecreation', 'DESC')
                     ->getQuery()
                     ->getResult();
+            } else {
+                return $this->createQueryBuilder('v')
+                        ->where('v.'.$champ.'=:valeur')
+                        ->setParameter('valeur', $valeur)
+                        ->orderBy('v.datecreation', 'DESC')
+                        ->getQuery()
+                        ->getResult();
+            }
         }
     }
     
